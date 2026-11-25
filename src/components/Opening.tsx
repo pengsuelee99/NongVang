@@ -15,6 +15,7 @@ export default function Opening({ onOpen }: { onOpen: () => void }) {
   const [isOpening, setIsOpening] = useState(false);
 
   const handleGiftClick = () => {
+    if (isOpening) return;
     setIsOpening(true);
 
     // Play SFX
@@ -97,7 +98,9 @@ export default function Opening({ onOpen }: { onOpen: () => void }) {
 
             {/* 3D Tilt Card Wrapper */}
             <Card3DTilt>
-              <motion.div
+              <motion.button
+                type="button"
+                disabled={isOpening}
                 whileHover={{ scale: 1.08 }}
                 whileTap={{ scale: 0.92 }}
                 animate={isOpening ? { scale: [1, 1.4, 0], rotate: [0, -15, 25, 0], opacity: [1, 1, 0] } : { y: [0, -10, 0] }}
@@ -106,17 +109,17 @@ export default function Opening({ onOpen }: { onOpen: () => void }) {
                 className="relative cursor-pointer group p-9 rounded-3xl bg-slate-900/60 border border-pink-500/40 backdrop-blur-2xl shadow-2xl shadow-pink-500/30 flex flex-col items-center justify-center transform-gpu"
               >
                 {/* 3D Outer Halo */}
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-pink-500/30 to-purple-500/30 blur-2xl group-hover:opacity-100 opacity-70 transition-opacity" />
+                <span className="absolute inset-0 rounded-3xl bg-gradient-to-r from-pink-500/30 to-purple-500/30 blur-2xl group-hover:opacity-100 opacity-70 transition-opacity" />
 
-                <div className="relative z-10 p-6 rounded-2xl bg-gradient-to-br from-pink-500/30 via-purple-600/40 to-indigo-600/30 border border-pink-300/50 text-pink-200 shadow-xl">
+                <span className="relative z-10 p-6 rounded-2xl bg-gradient-to-br from-pink-500/30 via-purple-600/40 to-indigo-600/30 border border-pink-300/50 text-pink-200 shadow-xl">
                   <Gift className="w-16 h-16 text-pink-200 drop-shadow-[0_0_25px_rgba(232,160,191,0.8)]" />
-                </div>
+                </span>
 
-                <div className="relative z-10 mt-5 flex items-center gap-1.5 text-xs text-slate-200 font-medium">
+                <span className="relative z-10 mt-5 flex items-center gap-1.5 text-xs text-slate-200 font-medium">
                   <Heart className="w-4 h-4 text-pink-400 fill-pink-400 animate-pulse" />
                   <span>ລອງເປີດກ່ອງນີ້ເບິ່ງ</span>
-                </div>
-              </motion.div>
+                </span>
+              </motion.button>
             </Card3DTilt>
           </motion.div>
         )}

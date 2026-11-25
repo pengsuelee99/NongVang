@@ -19,9 +19,10 @@ export default function InteractivePhotoUnlock({ onSelectPhoto }: Props) {
   const [displayLimit, setDisplayLimit] = useState(24);
 
   const totalPhotos = CONFIG.photos.length;
+  const visiblePhotoCount = Math.max(12, unlockedCount + 1);
 
   const unlockNextPhoto = (indexToUnlock: number) => {
-    if (indexToUnlock < unlockedCount) return;
+    if (indexToUnlock !== unlockedCount || indexToUnlock >= totalPhotos) return;
 
     if (indexToUnlock + 1 === totalPhotos) {
       playCelebrationSFX();
@@ -36,7 +37,7 @@ export default function InteractivePhotoUnlock({ onSelectPhoto }: Props) {
       colors: ["#e8a0bf", "#9b72cf", "#c9b8e8", "#ffffff", "#ffd1dc"],
     });
 
-    setUnlockedCount((prev) => Math.min(prev + 1, totalPhotos));
+    setUnlockedCount((count) => (count === indexToUnlock ? count + 1 : count));
   };
 
   // Category filter items
@@ -99,7 +100,7 @@ export default function InteractivePhotoUnlock({ onSelectPhoto }: Props) {
       {!showAllGallery ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {CONFIG.photos.slice(0, 12).map((photo, index) => {
+            {CONFIG.photos.slice(0, visiblePhotoCount).map((photo, index) => {
               const isUnlocked = index < unlockedCount;
               const isNextToUnlock = index === unlockedCount;
 
@@ -109,7 +110,7 @@ export default function InteractivePhotoUnlock({ onSelectPhoto }: Props) {
                   initial={{ opacity: 0, y: 25 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-30px" }}
-                  transition={{ delay: index * 0.05, duration: 0.6 }}
+                  transition={{ delay: Math.min(index, 11) * 0.05, duration: 0.6 }}
                   className="relative rounded-2xl overflow-hidden bg-slate-900/60 border border-white/10 backdrop-blur-md transition-all duration-300 shadow-xl"
                 >
                   <AnimatePresence mode="wait">
@@ -165,31 +166,32 @@ export default function InteractivePhotoUnlock({ onSelectPhoto }: Props) {
                       </motion.div>
                     ) : isNextToUnlock ? (
                       /* NEXT TO UNLOCK CARD STATE (PULSING GLOW) */
-                      <motion.div
+                      <motion.button
+                        type="button"
                         key="next-to-unlock"
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         onClick={() => unlockNextPhoto(index)}
                         className="cursor-pointer relative aspect-square w-full rounded-2xl p-6 bg-gradient-to-br from-pink-500/20 via-purple-600/20 to-indigo-900/30 border-2 border-pink-400/50 shadow-lg shadow-pink-500/20 flex flex-col items-center justify-center text-center space-y-3 group overflow-hidden"
                       >
-                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-purple-500/10 animate-pulse" />
+                        <span className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-purple-500/10 animate-pulse" />
 
-                        <div className="relative z-10 p-4 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-300 group-hover:scale-110 transition-transform">
+                        <span className="relative z-10 p-4 rounded-full bg-pink-500/20 border border-pink-400/40 text-pink-300 group-hover:scale-110 transition-transform">
                           <Gift className="w-8 h-8 text-pink-300 animate-bounce" />
-                        </div>
+                        </span>
 
-                        <div className="relative z-10 space-y-1">
-                          <span className="text-xs uppercase font-mono tracking-widest text-pink-300">
+                        <span className="relative z-10 block space-y-1">
+                          <span className="block text-xs uppercase font-mono tracking-widest text-pink-300">
                             Memory #{index + 1}
                           </span>
-                          <h4 className="text-sm font-medium text-slate-100">
+                          <span className="block text-sm font-medium text-slate-100">
                             ກົດເພື່ອປົດລັອກຮູບພາບ 🎁
-                          </h4>
-                          <p className="text-[11px] text-slate-400">
+                          </span>
+                          <span className="block text-[11px] text-slate-400">
                             ລຸ້ນຄຳອວຍພອນແລະຮູບຖັດໄປ!
-                          </p>
-                        </div>
-                      </motion.div>
+                          </span>
+                        </span>
+                      </motion.button>
                     ) : (
                       /* LOCKED CARD STATE */
                       <div className="relative aspect-square w-full rounded-2xl p-6 bg-slate-950/80 border border-white/5 flex flex-col items-center justify-center text-center space-y-2 opacity-50 select-none">

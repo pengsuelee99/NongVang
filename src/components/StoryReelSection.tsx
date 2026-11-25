@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { CONFIG } from "@/config";
 import { Sparkles, ExternalLink, ChevronLeft, ChevronRight, Play, Pause, Heart, Volume2, VolumeX } from "lucide-react";
 
@@ -11,31 +11,27 @@ export default function StoryReelSection() {
   const [isVideoMuted, setIsVideoMuted] = useState(true);
   const reels = CONFIG.storyReels;
   const currentReel = reels[currentIndex];
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const isInView = useInView(cardRef, { amount: 0.25 });
+  const shouldPlay = isInView && !isPaused;
+  const [failedVideo, setFailedVideo] = useState<string>();
+  const videoSrc = currentReel.video === failedVideo ? undefined : currentReel.video;
 
-  // Auto-advance stories unless paused
   useEffect(() => {
-    if (isPaused) return;
+    const video = videoRef.current;
+    if (!video) return;
 
-    timerRef.current = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % reels.length);
-    }, 7000);
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [currentIndex, isPaused, reels.length]);
-
-  // Handle video element play / mute when changing slide
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = 0;
-      videoRef.current.play().catch(() => {
-        // Autoplay policy fallback
+    if (shouldPlay) {
+      void video.play().catch(() => {
+        // The poster remains visible if the browser blocks playback.
       });
+    } else {
+      video.pause();
     }
-  }, [currentIndex]);
+
+    return () => video.pause();
+  }, [currentIndex, shouldPlay]);
 
   const handleNext = () => {
     setCurrentIndex((prev) => (prev + 1) % reels.length);
@@ -82,10 +78,7 @@ export default function StoryReelSection() {
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.8 }}
         className="relative rounded-3xl bg-slate-900/80 border border-pink-500/20 backdrop-blur-xl shadow-2xl shadow-purple-950/40 overflow-hidden"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={() => setIsPaused(true)}
-        onTouchEnd={() => setIsPaused(false)}
+        ref={cardRef}
       >
         {/* Story Progress Bars (like IG / TikTok Stories) */}
         <div className="absolute top-3 inset-x-3 z-30 flex gap-1.5 px-2">
@@ -95,54 +88,50 @@ export default function StoryReelSection() {
               className="h-1 flex-1 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm cursor-pointer"
               onClick={() => setCurrentIndex(idx)}
             >
-              <div
-                className={`h-full bg-gradient-to-r from-pink-400 to-purple-400 transition-all duration-300 ${
-                  idx === currentIndex
-                    ? isPaused
-                      ? "w-full opacity-80"
-                      : "animate-progress"
-                    : idx < currentIndex
-                    ? "w-full"
-                    : "w-0"
-                }`}
-              />
+              {idx === currentIndex ? (
+                <div
+                  className="h-full bg-gradient-to-r from-pink-400 to-purple-400 animate-progress"
+                  style={{ animationPlayState: shouldPlay ? "running" : "paused" }}
+                  onAnimationEnd={handleNext}
+                />
+              ) : idx < currentIndex ? (
+                <div className="h-full w-full bg-gradient-to-r from-pink-400 to-purple-400" />
+              ) : null}
             </div>
           ))}
         </div>
 
         {/* Media Frame Container (9:16 height ratio) */}
         <div className="relative aspect-[9/14] w-full overflow-hidden bg-slate-950">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentReel.id}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.5, ease: "easeInOut" }}
-              className="absolute inset-0 flex items-center justify-center bg-black"
-            >
-              {currentReel.video ? (
-                <video
-                  ref={videoRef}
-                  src={currentReel.video}
-                  autoPlay
-                  loop
-                  muted={isVideoMuted}
-                  playsInline
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <img
-                  src={currentReel.image}
-                  alt={currentReel.title}
-                  className="w-full h-full object-cover"
-                />
-              )}
+          <motion.div
+            key={currentReel.id}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="absolute inset-0 flex items-center justify-center bg-black"
+          >
+            {videoSrc ? (
+              <video
+                ref={videoRef}
+                src={videoSrc}
+                poster={currentReel.image}
+                preload="none"
+                loop
+                muted={isVideoMuted}
+                playsInline
+                onError={() => setFailedVideo(videoSrc)}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <img
+                src={currentReel.image}
+                alt={currentReel.title}
+                className="w-full h-full object-cover"
+              />
+            )}
 
-              {/* Gradient Dark Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
-            </motion.div>
-          </AnimatePresence>
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent pointer-events-none" />
+          </motion.div>
 
           {/* Navigation Tap Overlay Targets */}
           <div
@@ -158,7 +147,7 @@ export default function StoryReelSection() {
 
           {/* Controls top right: Pause/Play & Video Sound Toggle */}
           <div className="absolute top-6 right-4 z-30 flex items-center gap-2">
-            {currentReel.video && (
+            {videoSrc && (
               <button
                 onClick={toggleVideoMute}
                 className="p-2 rounded-full bg-slate-950/60 border border-white/20 text-pink-300 backdrop-blur-md hover:text-white transition-colors"
@@ -169,7 +158,9 @@ export default function StoryReelSection() {
             )}
 
             <button
-              onClick={() => setIsPaused(!isPaused)}
+              type="button"
+              onClick={() => setIsPaused((paused) => !paused)}
+              aria-label={isPaused ? "ຫຼິ້ນຕໍ່" : "ຢຸດຊົ່ວຄາວ"}
               className="p-2 rounded-full bg-slate-950/60 border border-white/20 text-white/80 backdrop-blur-md hover:text-white transition-colors"
             >
               {isPaused ? <Play className="w-3.5 h-3.5 fill-current" /> : <Pause className="w-3.5 h-3.5" />}
