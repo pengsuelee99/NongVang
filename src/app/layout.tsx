@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 import { CONFIG } from "@/config";
 
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="th">
       <body className="bg-[#080810] text-white antialiased overflow-x-hidden font-sans">
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
